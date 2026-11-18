@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#14284B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Biblioteca de Enfermería</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:wght@500;600&display=swap">
+<style>
+:root{--bg:#F2F5FA;--tx:#0F1E36;--tx2:#4A5B75;--sage:#1F3A5F;--sage-l:#E1EAF6;--sage-d:#16304F;--bd:#CBD5E3;--card:#fff;--navy:#14284B}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:Inter,system-ui,sans-serif;line-height:1.5}
+a{color:var(--sage-d)}a:hover{color:#0B2240}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #2F5AA8;outline-offset:2px}
+header{background:var(--navy);border-bottom:1px solid #0B1A33}
+header .muted{color:#C9D6EA}
+.bar{max-width:1100px;margin:0 auto;padding:8px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px}
+.brand{font-family:'Source Serif 4',Georgia,serif;font-size:20px;font-weight:600;color:#fff;text-decoration:none}
+nav{display:flex;flex-wrap:wrap;gap:4px;flex:1}
+nav a{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border-radius:8px;color:#DCE6F5;text-decoration:none;font-size:15px}
+nav a:hover{color:#fff}
+nav a.on{background:#2A4A7A;color:#fff;font-weight:600}
+main{max-width:1100px;margin:0 auto;padding:32px 24px 64px;display:flex;flex-direction:column;gap:20px}
+h1{margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:32px;line-height:1.15}
+h2{margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:20px}
+.muted{color:var(--tx2);font-size:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:18px 22px;display:flex;flex-direction:column;gap:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.badge{display:inline-flex;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid}
+.b-pend{background:#F7EBCB;color:#6B4E0C;border-color:#E3CF93}
+.b-ver{background:#E1EFE6;color:#245138;border-color:#B5D3C0}
+.b-des{background:#F4DCD6;color:#7A2F23;border-color:#E2B5AB}
+button,.btn{min-height:44px;padding:0 18px;font:600 14px Inter,sans-serif;border-radius:999px;cursor:pointer;background:#fff;color:var(--tx);border:1px solid #7F8FA8}
+button.on,button.pri{background:var(--sage);color:#fff;border-color:var(--sage)}
+input,select,textarea{font:inherit;padding:10px 12px;border:1px solid #7F8FA8;border-radius:10px;background:#fff;color:var(--tx)}
+textarea{width:100%;min-height:110px}
+.empty{border:1px dashed #9FB0C8;border-radius:8px;padding:10px 12px;background:#F7F9FC;color:var(--tx2);font-size:15px}
+.msg{min-height:22px;font-size:14px;color:#7A2F23}
+.ok{color:var(--sage-d)}
+.cita{font-size:13px;color:var(--tx2);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cita button{min-height:32px;padding:0 10px;font-size:12px}
+.link{display:block;text-decoration:none;color:var(--tx)}
+sup.n{font-size:11px;font-weight:600;margin-left:2px}
+sup.n a{text-decoration:none;padding:0 2px}
+sup.n + sup.n{margin-left:0}
+sup.n + sup.n::before{content:','}
+.src summary{cursor:pointer;font-weight:600}
+.src ol{margin:10px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:12px}
+.banner{background:#E1EAF6;border:1px solid #B8C8E0;border-radius:10px;padding:10px 14px;font-size:14px;color:var(--sage-d)}
+</style>
+</head>
+<body>
+<header><div class="bar">
+<a class="brand" href="#/">Biblioteca de Enfermería</a>
+<nav id="nav"></nav>
+<div id="auth"></div>
+</div></header>
+<main id="app" aria-live="polite"><p class="muted">Cargando…</p></main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = 'https://hbursztljrdkuseatmdh.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_mD2ISnDTS0uhTtjnFplnww_4uHD0bsF';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let user = null, isAdmin = false, nivel = 'completo', flash = '';
+
+const $ = (s) => document.querySelector(s);
+const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const badge = (e) => e === 'verificado' ? '<span class="badge b-ver">Verificado</span>'
+  : e === 'desactualizado' ? '<span class="badge b-des">Desactualizado</span>'
+  : '<span class="badge b-pend">Pendiente de revisión</span>';
+const estadoFuente = { vigente: 'Vigente', reemplazada: 'Reemplazada', requiere_verificacion: 'Requiere verificación', sin_verificar: 'Sin verificar' };
+const fail = (error) => { flash = '⚠ ' + (error.message || error); };
+
+async function init() {
+  const { data } = await sb.auth.getSession();
+  await setUser(data.session && data.session.user);
+  // No se hacen consultas dentro del callback (puede bloquear a supabase-js): se difiere.
+  sb.auth.onAuthStateChange((_e, s) => { setTimeout(async () => { await setUser(s && s.user); route(); }, 0); });
+  window.addEventListener('hashchange', route);
+  route();
+}
+async function setUser(u) {
+  user = u || null; isAdmin = false;
+  if (user) {
+    const { data, error } = await sb.from('perfiles').select('rol').eq('id', user.id).maybeSingle();
+    isAdmin = !!data && data.rol === 'admin';
+    if (error) flash = 'No se pudo leer tu perfil: ' + error.message;
+    else if (!data) flash = 'Tu usuario no tiene perfil en la base de datos.';
+  }
+}
+function chrome(active) {
+  const links = [['#/', 'Inicio', 'inicio'], ['#/fuentes', 'Fuentes', 'fuentes']];
+  if (isAdmin) links.push(['#/admin', 'Administración', 'admin']);
+  $('#nav').innerHTML = links.map((l) => `<a href="${l[0]}" class="${active === l[2] ? 'on' : ''}">${l[1]}</a>`).join('');
+  $('#auth').innerHTML = user
+    ? `<span class="muted">${esc(user.email)}${isAdmin ? ' · administradora' : ''}</span> <button data-a="logout">Salir</button>`
+    : `<a class="btn" style="display:inline-flex;align-items:center;text-decoration:none" href="#/login">Ingresar</a>`;
+}
+function show(html, active) {
+  chrome(active);
+  const note = flash ? `<p class="msg" role="status">${esc(flash)}</p>` : '';
+  flash = '';
+  $('#app').innerHTML = note + html;
+}
+async function route() {
+  const h = location.hash || '#/';
+  const p = h.split('/');
+  try {
+    if (p[1] === 'login') return login();
+    if (p[1] === 'modulo') return modulo(p[2]);
+    if (p[1] === 'articulo') return articulo(p[2]);
+    if (p[1] === 'fuentes') return fuentes();
+    if (p[1] === 'admin') return admin();
+    return inicio();
+  } catch (e) { show(`<p class="msg">Error: ${esc(e.message)}</p>`, ''); }
+}
+
+async function inicio() {
+  const [m, a] = await Promise.all([
+    sb.from('modulos').select('*').order('letra'),
+    sb.from('articulos').select('modulo,estado')
+  ]);
+  if (m.error) return show(`<p class="msg">${esc(m.error.message)}</p>`, 'inicio');
+  const n = {}; (a.data || []).forEach((x) => { n[x.modulo] = (n[x.modulo] || 0) + 1; });
+  show(`<h1>Estudia y consulta Enfermería con fuentes que puedes comprobar</h1>
+  <p class="muted">Cada artículo muestra de dónde sale su información y si ya fue verificado.${user ? '' : ' Sin ingresar solo se ve lo verificado.'}</p>
+  <div class="grid">${m.data.map((x) => `<a class="card link" href="#/modulo/${x.letra}"><h2>${x.letra} · ${esc(x.nombre)}</h2><span class="muted">${n[x.letra] || 0} artículo(s) ${user ? '' : 'verificados'}</span></a>`).join('')}</div>`, 'inicio');
+}
+async function modulo(letra) {
+  const [m, c, a] = await Promise.all([
+    sb.from('modulos').select('*').eq('letra', letra).maybeSingle(),
+    sb.from('categorias').select('*').eq('modulo', letra).order('nombre'),
+    sb.from('articulos').select('id,titulo,estado,categoria_id').eq('modulo', letra).order('titulo')
+  ]);
+  const arts = a.data || [];
+  const item = (x) => `<a class="card link" href="#/articulo/${x.id}"><div class="row"><strong>${esc(x.titulo)}</strong>${badge(x.estado)}</div></a>`;
+  let body = (c.data || []).map((k) => {
+    const l = arts.filter((x) => x.categoria_id === k.id);
+    return `<section class="card"><h2>${esc(k.nombre)}</h2>${l.length ? l.map(item).join('') : '<p class="muted">Sin artículos todavía.</p>'}</section>`;
+  }).join('');
+  const sueltos = arts.filter((x) => !x.categoria_id);
+  if (sueltos.length) body += `<section class="card"><h2>Otros</h2>${sueltos.map(item).join('')}</section>`;
+  if (!body) body = '<p class="muted">Sin artículos todavía.</p>';
+  show(`<p class="muted"><a href="#/">Inicio</a> › Módulo ${esc(letra)}</p><h1>${esc(m.data ? m.data.nombre : letra)}</h1>${body}`, 'inicio');
+}
+
+async function articulo(id) {
+  const [a, s, f] = await Promise.all([
+    sb.from('articulos').select('*').eq('id', id).maybeSingle(),
+    sb.from('secciones').select('*').eq('articulo_id', id).order('orden'),
+    sb.from('fuentes').select('id,titulo').order('titulo')
+  ]);
+  if (!a.data) return show('<p class="muted">Artículo no disponible. Si aún no está verificado, ingresa como administradora.</p>', 'inicio');
+  const secs = s.data || [];
+  const ids = secs.map((x) => x.id);
+  const ci = ids.length ? await sb.from('citas').select('id,seccion_id,fuente_id,pagina,fuentes(titulo,cita_vancouver,url,emisor,anio)').in('seccion_id', ids) : { data: [] };
+  let fav = false;
+  if (user) { const r = await sb.from('favoritos').select('articulo_id').eq('articulo_id', id).maybeSingle(); fav = !!r.data; }
+  const list = secs.filter((x) => nivel === 'completo' || x.en_consulta_rapida);
+  const opts = (f.data || []).map((x) => `<option value="${x.id}">${esc(x.titulo)}</option>`).join('');
+
+  // Referencias numeradas: cada lugar citado (fuente + sección/página) recibe un número.
+  const refs = []; const refKey = {}; const usadas = {};
+  const refNum = (c, loc) => {
+    const k = c.fuente_id + '|' + loc;
+    if (!refKey[k]) { refs.push({ c, loc }); refKey[k] = refs.length; }
+    usadas[c.fuente_id] = c;
+    return refKey[k];
+  };
+  const marca = (n) => `<sup class="n"><a href="#ref-${n}" data-a="abrirrefs" aria-label="Referencia ${n}">${n}</a></sup>`;
+  const limpio = (t) => t.replace(/\n*Borrador pendiente de revisión:[\s\S]*$/, '');
+  // Una ubicación puede llevar el nombre de la fuente delante: "(MINSAL, ITU/CUP 4, p. 13)" o "(CDC, Rec. II.A)".
+  const esLoc = (p) => /^\s*(?:[A-ZÁ-Ú][\wÁ-ú\/]*,\s*)?(§|Tabla|pp?\.|Rec\.|ITU\/CUP\s*\d)/.test(p);
+  // Reemplaza "(… §3.2.4, p. 23)" por un número, conservando el resto del paréntesis ("buena práctica", etc.).
+  const conRefs = (texto, cs) => {
+    const c0 = cs[0]; let usoInline = false; const usados = new Set();
+    const out = texto.replace(/ ?\(([^()]*)\)/g, (m, inner) => {
+      const partes = inner.split(';');
+      const locs = partes.filter(esLoc).map((p) => p.trim());
+      if (!locs.length || !c0) return m;
+      usoInline = true;
+      const resto = partes.filter((p) => !esLoc(p)).map((p) => p.trim()).filter(Boolean).join('; ');
+      const hallar = (p) => {
+        const mm = p.match(/^([A-ZÁ-Ú][\wÁ-ú\/]*),\s*(.*)$/);
+        if (mm) {
+          const k = mm[1].toLowerCase();
+          const c = cs.find((q) => q.fuentes && ((q.fuentes.emisor || '') + ' ' + (q.fuentes.titulo || '')).toLowerCase().includes(k));
+          if (c) return { c, loc: mm[2] };
+        }
+        return { c: c0, loc: p };
+      };
+      const nums = locs.map((l) => { const h = hallar(l); usados.add(h.c.fuente_id); return marca(refNum(h.c, h.loc)); }).join('');
+      return (resto ? ' (' + resto + ')' : '') + nums;
+    });
+    return { out, usoInline, usados };
+  };
+  const sec = (x) => {
+    const cs = (ci.data || []).filter((c) => c.seccion_id === x.id);
+    let texto;
+    if (x.contenido) {
+      const r = conRefs(esc(limpio(x.contenido)), cs);
+      // Si el texto no trae ubicaciones, se numera cada cita registrada al final.
+      // Cada cita cuya fuente no apareció numerada dentro del texto se numera al final.
+      const finales = cs.filter((c) => !r.usados.has(c.fuente_id)).map((c) => marca(refNum(c, c.pagina || 'sin página'))).join('');
+      texto = `<div style="white-space:pre-wrap">${r.out}${finales}</div>`;
+    } else texto = '<div class="empty">Sin fuente registrada. Esta sección se completa solo desde una fuente aprobada, con su cita.</div>';
+    const citas = isAdmin ? cs.map((c) => `<div class="cita">${esc(c.fuentes && c.fuentes.titulo)}${c.pagina ? ' · ' + esc(c.pagina) : ''} <button data-a="delcita" data-id="${c.id}">Quitar</button></div>`).join('') : '';
+    const edit = isAdmin ? `<details><summary>Editar y citar</summary>${citas}
+      <textarea id="t-${x.id}" aria-label="Texto de la sección">${esc(x.contenido || '')}</textarea>
+      <button data-a="savesec" data-id="${x.id}">Guardar texto</button>
+      <div class="row" style="justify-content:flex-start;margin-top:8px"><select id="f-${x.id}" aria-label="Fuente">${opts}</select><input id="p-${x.id}" placeholder="Página" size="6" aria-label="Página"><button data-a="addcita" data-id="${x.id}">Agregar cita</button></div></details>` : '';
+    return `<article class="card"><h2><span class="muted">${x.orden}</span> ${esc(x.titulo)}</h2>${texto}${edit}</article>`;
+  };
+  const cuerpo = list.map(sec).join('');   // se arma antes del panel para numerar las referencias
+  const pendiente = a.data.estado !== 'verificado';
+  const banner = pendiente ? '<p class="banner">Borrador pendiente de revisión: son resúmenes en español de las fuentes, no texto literal. Compáralos con la fuente (números pequeños) antes de usarlos.</p>' : '';
+  const etiqueta = (f) => esc([f.emisor, f.anio].filter(Boolean).join(' ') || f.titulo || '');
+  const panel = refs.length ? `<details class="card src" id="panel-refs"><summary>Referencias (${refs.length})</summary><ol>${refs.map((r, i) => {
+    const f = r.c.fuentes || {};
+    return `<li id="ref-${i + 1}" value="${i + 1}"><strong>${esc(f.titulo || '')}</strong><br><span class="muted">${esc(r.loc)} · ${etiqueta(f)}</span>${f.url && /^https?:\/\//.test(f.url) ? ` · <a href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">Abrir la fuente</a>` : ''}</li>`;
+  }).join('')}</ol>
+  <details style="margin-top:12px"><summary class="muted">Fuentes completas (formato Vancouver)</summary><ul>${Object.values(usadas).map((c) => `<li>${esc((c.fuentes && (c.fuentes.cita_vancouver || c.fuentes.titulo)) || '')}</li>`).join('')}</ul></details></details>` : '';
+  show(`<p class="muted"><a href="#/">Inicio</a> › <a href="#/modulo/${esc(a.data.modulo)}">Módulo ${esc(a.data.modulo)}</a></p>
+  <h1>${esc(a.data.titulo)}</h1>
+  <div class="row" style="justify-content:flex-start">${badge(a.data.estado)}<span class="muted">Última revisión: ${a.data.fecha_ultima_revision || 'sin validar'}</span></div>
+  <div class="row" style="justify-content:flex-start">
+    <button data-a="nivel" data-v="rapida" class="${nivel === 'rapida' ? 'on' : ''}" aria-pressed="${nivel === 'rapida'}">Consulta rápida</button>
+    <button data-a="nivel" data-v="completo" class="${nivel === 'completo' ? 'on' : ''}" aria-pressed="${nivel === 'completo'}">Desarrollo completo</button>
+    ${user ? `<button data-a="fav" data-id="${id}" class="${fav ? 'on' : ''}" aria-pressed="${fav}">${fav ? 'En favoritos' : 'Guardar en favoritos'}</button>` : ''}
+    ${isAdmin ? `<button class="pri" data-a="verificar" data-id="${id}">Marcar como verificado</button><button data-a="pendiente" data-id="${id}">Devolver a pendiente</button>` : ''}
+  </div>
+  ${banner}${cuerpo}${panel}`, 'inicio');
+}
+
+async function fuentes() {
+  const { data, error } = await sb.from('fuentes').select('*').order('tema').order('titulo');
+  if (error) return show(`<p class="msg">${esc(error.message)}</p>`, 'fuentes');
+  const nuevo = isAdmin ? `<details class="card"><summary><strong>Agregar fuente por enlace</strong></summary>
+    <div style="display:grid;gap:10px;margin-top:10px">
+    <label>Título<br><input id="n-titulo" style="width:100%"></label>
+    <label>Enlace (URL)<br><input id="n-url" type="url" style="width:100%" placeholder="https://"></label>
+    <div class="row" style="justify-content:flex-start">
+      <label>Emisor<br><input id="n-emisor"></label>
+      <label>Año<br><input id="n-anio" size="6"></label>
+      <label>Tema<br><input id="n-tema" placeholder="Ej.: Vía venosa periférica"></label>
+      <label>Nivel (1-7)<br><select id="n-nivel"><option value="">por asignar</option>${[1,2,3,4,5,6,7].map((n) => `<option>${n}</option>`).join('')}</select></label>
+    </div>
+    <label>Cita Vancouver (opcional)<br><textarea id="n-cita" style="min-height:60px"></textarea></label>
+    <button class="pri" data-a="addfuente">Registrar fuente</button>
+    <span class="muted">Queda como «sin verificar» hasta que la revises.</span></div></details>` : '';
+  show(`<h1>Fuentes registradas</h1><p class="muted">Todas están sin verificar hasta que la administradora las valide.</p>${nuevo}
+  ${(data || []).map((f) => `<div class="card"><div class="row"><strong>${esc(f.titulo)}</strong><span class="badge ${f.estado === 'sin_verificar' ? 'b-pend' : f.estado === 'vigente' ? 'b-ver' : 'b-des'}">${estadoFuente[f.estado]}</span></div>
+  <span class="muted">${esc(f.emisor)} · ${esc(f.anio || 'año por confirmar')} · ${esc(f.tema)}${f.nivel ? ' · nivel ' + f.nivel : ''}</span>${f.url && /^https?:\/\//.test(f.url) ? `<a href="${esc(f.url)}" target="_blank" rel="noopener noreferrer">Abrir la fuente</a>` : ''}${f.nota ? `<span class="muted">${esc(f.nota)}</span>` : ''}
+  ${isAdmin ? `<div class="row" style="justify-content:flex-start"><select id="e-${f.id}" aria-label="Estado de la fuente">${Object.keys(estadoFuente).map((k) => `<option value="${k}" ${k === f.estado ? 'selected' : ''}>${estadoFuente[k]}</option>`).join('')}</select><button data-a="estfuente" data-id="${f.id}">Cambiar estado</button></div>` : ''}</div>`).join('')}`, 'fuentes');
+}
+
+async function admin() {
+  if (!isAdmin) return show('<p class="muted">Solo la administradora puede ver esta página.</p>', 'admin');
+  const [q, al, lg] = await Promise.all([
+    sb.from('articulos').select('id,titulo,estado').neq('estado', 'verificado'),
+    sb.from('alertas_revision').select('id,motivo,creado_en,articulos(titulo),fuentes(titulo)').eq('resuelta', false).order('creado_en', { ascending: false }),
+    sb.from('registro_cambios').select('tabla,accion,creado_en').order('creado_en', { ascending: false }).limit(15)
+  ]);
+  show(`<h1>Administración</h1>
+  <section class="card"><h2>Cola de revisión</h2>${(q.data || []).map((x) => `<a class="link" href="#/articulo/${x.id}"><div class="row"><span>${esc(x.titulo)}</span>${badge(x.estado)}</div></a>`).join('') || '<p class="muted">Nada pendiente.</p>'}</section>
+  <section class="card"><h2>Alertas</h2>${(al.data || []).map((x) => `<div class="row"><span>${esc((x.fuentes && x.fuentes.titulo) || '')} · ${esc(x.motivo)}${x.articulos ? ' → ' + esc(x.articulos.titulo) : ''}</span><button data-a="resolver" data-id="${x.id}">Marcar resuelta</button></div>`).join('') || '<p class="muted">Sin alertas.</p>'}
+  <button data-a="antiguedad">Revisar antigüedad de fuentes</button></section>
+  <section class="card"><h2>Últimos cambios</h2>${(lg.data || []).map((x) => `<span class="muted">${new Date(x.creado_en).toLocaleString('es-CL')} · ${esc(x.accion)} en ${esc(x.tabla)}</span>`).join('') || '<p class="muted">Sin cambios.</p>'}</section>`, 'admin');
+}
+
+function login() {
+  show(`<h1>Ingresar</h1><form id="lf" class="card" style="max-width:420px">
+  <label>Correo<br><input id="em" type="email" required autocomplete="email" style="width:100%"></label>
+  <label>Contraseña<br><input id="pw" type="password" required autocomplete="current-password" style="width:100%"></label>
+  <button class="pri" type="submit">Ingresar</button><p class="msg" id="lm"></p></form>`, '');
+  $('#lf').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const { error } = await sb.auth.signInWithPassword({ email: $('#em').value, password: $('#pw').value });
+    if (error) { $('#lm').textContent = 'No se pudo ingresar: ' + error.message; return; }
+    location.hash = '#/';
+  });
+}
+
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-a]'); if (!b) return;
+  const a = b.dataset.a, id = b.dataset.id;
+  if (a === 'logout') { await sb.auth.signOut(); location.hash = '#/'; return; }
+  if (a === 'nivel') { nivel = b.dataset.v; return route(); }
+  if (a === 'abrirrefs') {
+    e.preventDefault();
+    const p = $('#panel-refs'); if (p) {
+      p.open = true;
+      const t = $(b.getAttribute('href'));
+      if (t) { t.scrollIntoView({ behavior: 'smooth', block: 'center' }); t.style.background = '#E1EAF6'; setTimeout(() => { t.style.background = ''; }, 2500); }
+    }
+    return;
+  }
+  let r = null;
+  if (a === 'fav') {
+    r = b.classList.contains('on')
+      ? await sb.from('favoritos').delete().eq('articulo_id', id)
+      : await sb.from('favoritos').insert({ articulo_id: id });
+  } else if (a === 'savesec') {
+    const t = $('#t-' + id).value.trim();
+    r = await sb.from('secciones').update({ contenido: t || null }).eq('id', id);
+    if (!r.error) flash = 'Texto guardado. Agrega la cita antes de verificar.';
+  } else if (a === 'addcita') {
+    r = await sb.from('citas').insert({ seccion_id: id, fuente_id: $('#f-' + id).value, pagina: $('#p-' + id).value || null });
+  } else if (a === 'delcita') {
+    r = await sb.from('citas').delete().eq('id', id);
+  } else if (a === 'verificar') {
+    r = await sb.from('articulos').update({ estado: 'verificado' }).eq('id', id).select('estado');
+    if (!r.error) flash = (r.data && r.data.length) ? 'Artículo verificado.' : 'No se pudo cambiar: revisa que hayas ingresado como administradora.';
+  } else if (a === 'pendiente') {
+    r = await sb.from('articulos').update({ estado: 'pendiente' }).eq('id', id).select('estado');
+    if (!r.error) flash = (r.data && r.data.length) ? 'Artículo en estado pendiente de revisión.' : 'No se pudo cambiar: revisa que hayas ingresado como administradora.';
+  } else if (a === 'estfuente') {
+    r = await sb.from('fuentes').update({ estado: $('#e-' + id).value }).eq('id', id);
+    if (!r.error) flash = 'Estado de la fuente actualizado.';
+  } else if (a === 'addfuente') {
+    const v = (k) => ($('#n-' + k).value || '').trim();
+    if (!v('titulo') || !v('url')) { flash = 'Falta el título o el enlace.'; return route(); }
+    r = await sb.from('fuentes').insert({
+      titulo: v('titulo'), url: v('url'), emisor: v('emisor') || null, anio: v('anio') || null,
+      tema: v('tema') || null, nivel: v('nivel') ? Number(v('nivel')) : null,
+      cita_vancouver: v('cita') || null, nota: 'Registrada por enlace el ' + new Date().toISOString().slice(0, 10) + '. Pendiente de revisión.'
+    });
+    if (!r.error) flash = 'Fuente registrada como sin verificar.';
+  } else if (a === 'resolver') {
+    r = await sb.from('alertas_revision').update({ resuelta: true }).eq('id', id);
+  } else if (a === 'antiguedad') {
+    r = await sb.rpc('revisar_antiguedad');
+    if (!r.error) flash = r.data + ' fuente(s) marcadas como "requiere verificación".';
+  }
+  if (r && r.error) fail(r.error);
+  route();
+});
+init();
+// Permite instalarla como app cuando está publicada con https (no corre al abrir el archivo suelto).
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {}
+}
+</script>
+</body>
+</html>
